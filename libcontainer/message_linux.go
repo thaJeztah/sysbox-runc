@@ -21,6 +21,7 @@ const (
 	RootlessEUIDAttr uint16 = 27287
 	UidmapPathAttr   uint16 = 27288
 	GidmapPathAttr   uint16 = 27289
+	TimeOffsetsAttr  uint16 = 27292
 
 	// sysbox-runc
 	PrepRootfsAttr     uint16 = 27290

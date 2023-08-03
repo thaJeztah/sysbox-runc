@@ -218,6 +218,9 @@ type Config struct {
 	// When RootlessCgroups is set, cgroups errors are ignored.
 	RootlessCgroups bool `json:"rootless_cgroups,omitempty"`
 
+	// TimeOffsets specifies the offset for supporting time namespaces.
+	TimeOffsets map[string]specs.LinuxTimeOffset `json:"time_offsets,omitempty"`
+
 	// RootfsUidShiftType indicates the type of fs ID shifting to do on the rootfs
 	RootfsUidShiftType sh.IDShiftType `json:"rootfs_uid_shift_type,omitempty"`
 

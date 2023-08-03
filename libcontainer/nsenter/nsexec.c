@@ -89,6 +89,10 @@ struct nlconfig_t {
 	char *gidmappath;
 	size_t gidmappath_len;
 
+	/* Time NS offsets. */
+	char *timensoffset;
+	size_t timensoffset_len;
+
 	/* sysbox-runc: rootfs prep */
 	uint8_t prep_rootfs; /* boolean */
 	uint8_t make_parent_priv; /* boolean */
@@ -124,6 +128,7 @@ static int logfd = -1;
 #define ROOTLESS_EUID_ATTR	27287
 #define UIDMAPPATH_ATTR	   27288
 #define GIDMAPPATH_ATTR	   27289
+#define TIMENSOFFSET_ATTR	27292
 #define PREP_ROOTFS_ATTR   27290
 #define MAKE_PARENT_PRIV_ATTR 27291
 #define ROOTFS_PROP_ATTR   27292
@@ -427,6 +432,8 @@ static int nsflag(char *name)
 		return CLONE_NEWUSER;
 	else if (!strcmp(name, "uts"))
 		return CLONE_NEWUTS;
+	else if (!strcmp(name, "time"))
+		return CLONE_NEWTIME;
 
 	/* If we don't recognise a name, fallback to 0. */
 	return 0;
@@ -517,6 +524,10 @@ static void nl_parse(int fd, struct nlconfig_t *config)
 		/* sysbox-runc */
 	   case PREP_ROOTFS_ATTR:
 			config->prep_rootfs = readint8(current);
+			break;
+	   case TIMENSOFFSET_ATTR:
+			config->timensoffset = current;
+			config->timensoffset_len = payload_len;
 			break;
 	   case MAKE_PARENT_PRIV_ATTR:
 			config->make_parent_priv = readint8(current);
@@ -645,6 +656,17 @@ int mount_shiftfs(struct nlconfig_t *config) {
 
 /* Defined in cloned_binary.c. */
 extern int ensure_cloned_binary(void);
+
+static void update_timens(char *map, size_t map_len)
+{
+	if (map == NULL || map_len == 0)
+		return;
+	write_log(DEBUG, "update /proc/self/timens_offsets to '%s'", map);
+	if (write_file(map, map_len, "/proc/self/timens_offsets") < 0) {
+		if (errno != EPERM)
+			bail("failed to update /proc/self/timens_offsets");
+	}
+}
 
 void nsexec(void)
 {
@@ -1072,6 +1094,11 @@ void nsexec(void)
 			 */
 			if (unshare(config.cloneflags & ~CLONE_NEWCGROUP) < 0)
 			  bail("failed to unshare namespaces");
+
+			/*
+			 * set boottime and monotonic timens offsets.
+			 */
+			update_timens(config.timensoffset, config.timensoffset_len);
 
 			/*
 			 * TODO: What about non-namespace clone flags that we're dropping here?

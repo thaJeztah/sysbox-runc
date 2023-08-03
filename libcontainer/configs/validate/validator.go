@@ -128,6 +128,13 @@ func (v *ConfigValidator) cgroupnamespace(config *configs.Config) error {
 			return errors.New("cgroup namespaces aren't enabled in the kernel")
 		}
 	}
+
+	if config.Namespaces.Contains(configs.NEWTIME) {
+		if _, err := os.Stat("/proc/self/timens_offsets"); os.IsNotExist(err) {
+			return errors.New("time namespaces aren't enabled in the kernel")
+		}
+	}
+
 	return nil
 }
 
